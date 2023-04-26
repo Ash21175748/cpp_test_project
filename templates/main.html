@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <nav class="navbar navbar-expand-lg navbar-light" style="background-color:black; opacity:0.7;">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#" style="color: white; font-weight: bold; font-size: 32px; font-family: 'Montserrat', sans-serif;">Word Visualizer</a>
+  </div>
+</nav>
+  <form action="upload/" method="POST" class="dropzone dz" id="MyDropZone">
+    {% csrf_token %}
+    <div class="fallback">
+      <input name="file" type="file" multiple />
+    </div>
+  </form>
+  <div class="chart-selection">
+    <label for="chart-type" style="font-size: 20px;font-weight: bold;">Select Chart Type:</label>
+    <select id="chart-type" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" style="background-color: #FFFFFF; font-size: 20px;">
+      <option value="bar">None</option>
+      <option value="bar">Bar Chart</option>
+      <option value="pie">Pie Chart</option>
+    </select>
+  </div>
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <h5 id="table_title"></h5>
+        <table class="table table-bordered WordsTable text-center" style="visibility: hidden;"></table>
+            <div id="chart-container">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <div class="col">
+    <div id="bar-chart-container">
+      <canvas id="WordChart"></canvas>
+    </div>
+
+    <div id="pie-chart-container">
+      <canvas id="PieChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<style>
+
+  /* Add some styles to the page */
+  .navbar-brand {
+    font-weight: bold;
+    text-align: center;
+    width: 100%;
+    font-size: 30px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+
+  .navbar-nav .nav-link {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .dropzone {
+    margin-top: 50px;
+    color: black;
+    font-size: 20px;
+  }
+
+  #table_title {
+    margin-top: 50px;
+    font-weight: bold;
+    font-size: 24px;
+    color: #6C757D;
+  }
+
+  .chart-selection {
+    margin-top: 50px;
+    font-size: 20px;
+  }
+
+  #chart-container {
+    margin-top: 10px;
+  }
+
+  .dz {
+    border: dashed !important;
+    border-radius: 10px !important;
+  }
+
+  .dz:hover {
+    border-color: #007BFF !important;
+  }
+
+  .WordsTable {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    background-color: #E3EEF6;
+    color: black;
+    opacity: 0.8;
+    table-layout: fixed;
+    width: 80%;
+  }
+
+  .chart-selection {
+    margin-right: 12rem;
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  .chart-selection label {
+    margin-top: 0.1rem;
+    margin-right: 1rem;
+  }
+
+  .form-select option {
+    background-color: #FCFCFC;
+    color: black;
+    font-weight: bold;
+  }
+
+  /* Styling for the bar chart */
+  #bar-chart-container {
+    display: none;
+  }
+
+  /* Styling for the pie chart */
+  #pie-chart-container {
+    display: none;
+  }
+
+  /* Styling for the chart legend */
+  .chart-legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1rem;
+    padding: 0;
+  }
+
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 0.5rem;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .chart-legend-color {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+  }
+
+  /* Styling for the chart tooltip */
+  .chart-tooltip {
+    opacity: 0.9;
+    position: absolute;
+    background-color: #6C757D;
+    color: white;
+    padding: 0.5rem;
+    font-size: 14px;
+    font-weight: bold;
+    pointer-events: none;
+    border-radius: 3px;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  /* Styling for the chart tooltip arrow */
+ /* Styling for the chart tooltip arrow */
+.chart-tooltip:before {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(0, 0, 0, 0.8);
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+}
+
+/* Styling for the chart tooltip content */
+.chart-tooltip .tooltip-body {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Styling for the chart tooltip title */
+.chart-tooltip .tooltip-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+/* Styling for the "total number of words" text */
+#Total_Number {
+  text-align: center;
+  font-size: 24px;
+  margin-top: 20px;
+  margin-bottom: 50px;
+}
+
+/* Styling for the chart select dropdown */
+.chart-selection select {
+  background-color: white;
+  color: #555;
+  border: 2px solid #555;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 14px;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.chart-selection select:hover {
+  border-color: #007bff;
+}
+
+.chart-selection select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.chart-selection option {
+  background-color: white;
+  color: #555;
+}
+
+/* Styling for the chart container */
+#chart-container {
+  margin-top: 20px;
+  position: relative;
+}
+
+/* Styling for the pie chart container */
+#pie-chart-container {
+  display: none;
+}
+
+/* Styling for the bar chart container */
+#bar-chart-container {
+  display: block;
+  padding-top: 50px;
+
+
+}
+
+/* Styling for the words table */
+.WordsTable th {
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid black;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  background-color: #e6f2ff;
+}
+
+.WordsTable td {
+  text-align: center;
+  border: 1px solid black;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  background-color: #f2f2f2;
+}
+
+.WordsTable td:first-child {
+  font-weight: bold;
+}
+
+/* Styling for the words table header */
+#table_title {
+  margin-top: 50px;
+  font-weight: bold;
+}
+
+/* Styling for the background color and font */
+body {
+  background-color: #E1E7E6;
+  background-image:url(https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8YWJzdHJhY3R8ZW58MHx8MHx8&auto=format&fit=crop&w=800&q=60);
+  background-repeat: no-repeat;
+  background-size: cover;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 300;
+  color: #333;
+}
+
+/* Styling for the chart container size */
+@media screen and (max-width: 768px) {
+  #chart-container {
+    height: 1000px;
+  }
+}
+
+/* Styling for the chart tooltip */
+.chart-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Styling for the chart tooltip arrow */
+.chart-tooltip:before {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 5px 0 5px;
+  border-color: rgba(0, 0, 0, 0.7) transparent transparent transparent;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -5px;
+}
+
+/* Styling for the table */
+table.WordsTable th {
+  background-color: #F3F3F3;
+  color: black;
+  font-weight: bold;
+}
+
+table.WordsTable tr:nth-child(even) {
+  background-color: #EAEAEA;
+}
+
+table.WordsTable td {
+  padding: 5px;
+}
+
+/* Styling for the upload button */
+.fallback {
+  background-color: #FFFFFF;
+  padding: 20px;
+  border-radius: 5px;
+  border: 2px dashed #ccc;
+  text-align: center;
+  margin: auto;
+  width: 60%;
+}
+
+.fallback:hover {
+  border-color: blue;
+}
+
+input[type="file"] {
+  display: none;
+}
+</style>
+
+{% endblock content %}
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.3.2/chart.min.js"></script>
+
+  <script>
+    // Get references to the DOM elements
+  let chartSelect = document.querySelector('#chart-type');
+  let chartContainer = document.querySelector('#chart-container');
+  let barChartContainer = document.querySelector('#bar-chart-container');
+  let pieChartContainer = document.querySelector('#pie-chart-container');
+
+  // Initialize the chart as a bar chart
+  let chart = new Chart(document.querySelector("#chart"), {
+    type: 'bar',
+    data: {
+      // ...
+    },
+    options: {
+      // ...
+    }
+  });
+
+  // Add an event listener to the chart select dropdown
+  chartSelect.addEventListener('change', function() {
+    // Get the selected value from the dropdown
+    const selectedValue = chartSelect.value;
+
+    // Remove the old chart
+    chart.destroy();
+
+    // Create a new chart based on the selected value
+    if (selectedValue === 'pie') {
+      chart = new Chart(document.querySelector("#chart"), {
+        type: 'pie',
+        data: {
+          // ...
+        },
+        options: {
+          // ...
+        }
+      });
+      // Show the pie chart container and hide the bar chart container
+      pieChartContainer.style.display = 'block';
+      barChartContainer.style.display = 'none';
+    } else if (selectedValue === 'bar') {
+      chart = new Chart(document.querySelector("#chart"), {
+        type: 'bar',
+        data: {
+          // ...
+        },
+        options: {
+          // ...
+        }
+      });
+      // Show the bar chart container and hide the pie chart container
+      barChartContainer.style.display = 'block';
+      pieChartContainer.style.display = 'none';
+    }
+  });
+</script>
